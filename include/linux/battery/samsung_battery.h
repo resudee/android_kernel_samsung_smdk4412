@@ -183,11 +183,19 @@ struct battery_info {
 	unsigned int prev_charge_virt_state;
 	unsigned int prev_battery_soc;
 	struct wake_lock update_wake_lock;
+
+#if defined(CONFIG_TARGET_LOCALE_KOR) || defined(CONFIG_MACH_M0_CTC)\
+	|| defined(CONFIG_MACH_T0_CHN_CTC)
+	bool is_unspec_phase;
+	bool is_unspec_recovery;
 #endif
 };
 
 /* jig state */
 extern bool is_jig_attached;
+#if defined(CONFIG_MACH_GC1) && defined(CONFIG_TARGET_LOCALE_USA)
+	extern int activity_index;
+#endif
 
 /* charger detect source */
 #if defined(CONFIG_MACH_C1_KOR_SKT) || \
@@ -274,11 +282,14 @@ enum status_full_type {
 #define DOCK_TYPE_LOW_CURR		475
 
 /* voltage diff for recharge voltage calculation */
-#if defined(CONFIG_TARGET_LOCALE_KOR) || defined(CONFIG_MACH_M0_CTC)
-/* KOR model spec : max-voltage minus 60mV */
+#if defined(CONFIG_TARGET_LOCALE_USA) || \
+	defined(CONFIG_TARGET_LOCALE_KOR) || \
+	defined(CONFIG_MACH_M0_CTC) || \
+	defined(CONFIG_MACH_T0_CHN_CTC)
+/* CDMA model spec : max-voltage minus 60mV */
 #define RECHG_DROP_VALUE	60000
 #else
-#define RECHG_DROP_VALUE	50000	/* 4300mV */
+#define RECHG_DROP_VALUE	50000
 #endif
 
 /* power off condition, low %duV than VOLTAGE_MIN_DESIGN & SOC 0% */
@@ -319,6 +330,7 @@ enum {
 	VF_DET_ADC = 0,
 	VF_DET_CHARGER,
 	VF_DET_GPIO,
+	VF_DET_ADC_GPIO,
 
 	VF_DET_UNKNOWN,
 };
@@ -390,6 +402,7 @@ enum event_type {
 	EVENT_TYPE_WIFI,
 	EVENT_TYPE_USE,
 
+	EVENT_TYPE_GPU,
 	EVENT_TYPE_MAX,
 };
 
