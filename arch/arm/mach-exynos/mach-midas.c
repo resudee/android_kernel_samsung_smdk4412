@@ -3430,10 +3430,10 @@ static void __init exynos4_reserve(void)
 			.start = 0x65800000,
 			.reserved = 1,
 		};
-
+		
 		if (cma_early_region_register(&fimc_reg))
 			pr_err("S5P/CMA: Failed to register '%s'\n",
-						fimc_reg.name);
+				fimc_reg.name);
 	}
 #endif
 
@@ -3450,7 +3450,7 @@ static void __init exynos4_reserve(void)
 
 		if (cma_early_region_register(&mfc_reg))
 			pr_err("S5P/CMA: Failed to register '%s'\n",
-						mfc_reg.name);
+				mfc_reg.name);
 	}
 #endif
 	if (ret != 0)
