@@ -576,6 +576,7 @@ static mali_bool mali_dvfs_status(u32 utilization)
 {
 	unsigned int nextStatus = 0;
 	unsigned int curStatus = 0;
+	mali_bool boostup = MALI_FALSE;
 	static int stay_count = 0;
 #ifdef EXYNOS4_ASV_ENABLED
 	static mali_bool asv_applied = MALI_FALSE;
@@ -934,32 +935,6 @@ static ssize_t thresholds_store(struct sysdev_class * cls, struct sysdev_class_a
 	return count;
 }
 
-static ssize_t utilization_timeout_show(struct sysdev_class * cls, 
-			     struct sysdev_class_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%d", mali_gpu_utilization_timeout);
-}
-
-static ssize_t utilization_timeout_store(struct sysdev_class * cls, struct sysdev_class_attribute *attr,
-			      const char *buf, size_t count) 
-{
-	unsigned int ret = -EINVAL;
-	int ms;
-
-	ret = sscanf(buf, "%d", &ms);
-	if (ret != 1) {
-		return -EINVAL;
-	} else {
-		if(ms < 25)
-			ms = 25;
-		if(ms > 2000)
-			ms = 2000;
-
-		mali_gpu_utilization_timeout = ms;
-	}
-	return count;	
-}
-
 static ssize_t current_freq_show(struct sysdev_class * cls, 
 			     struct sysdev_class_attribute *attr, char *buf)
 {
@@ -1007,7 +982,6 @@ static SYSDEV_CLASS_ATTR(min_freq, S_IRUGO | S_IWUGO, min_freq_show, min_freq_st
 static SYSDEV_CLASS_ATTR(freq_table, S_IRUGO | S_IWUGO, freq_table_show, freq_table_store);
 static SYSDEV_CLASS_ATTR(volt_table, S_IRUGO | S_IWUGO, volt_table_show, volt_table_store);
 static SYSDEV_CLASS_ATTR(thresholds, S_IRUGO | S_IWUGO, thresholds_show, thresholds_store);
-static SYSDEV_CLASS_ATTR(utilization_timeout, S_IRUGO | S_IWUGO, utilization_timeout_show, utilization_timeout_store);
 static SYSDEV_CLASS_ATTR(current_freq, S_IRUGO, current_freq_show, NULL);
 static SYSDEV_CLASS_ATTR(time_in_state, S_IRUGO | S_IWUGO, time_in_state_show, time_in_state_store);
 
@@ -1017,7 +991,6 @@ static struct sysdev_class_attribute *gpu_attributes[] = {
 	&attr_freq_table,
 	&attr_volt_table,
 	&attr_thresholds,
-        &attr_utilization_timeout,
         &attr_current_freq,
 	&attr_time_in_state,
 };
