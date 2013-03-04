@@ -56,7 +56,6 @@ static int mali_os_resume(struct device *dev);
 #ifdef CONFIG_GPU_CLOCK_CONTROL
 #include <../common/gpu_clock_control.h>
 #include <../common/gpu_voltage_control.h>
-#endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,29))
 static const struct dev_pm_ops mali_dev_pm_ops =
