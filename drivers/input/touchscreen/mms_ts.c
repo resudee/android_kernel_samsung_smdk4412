@@ -50,6 +50,10 @@
 
 #include <asm/unaligned.h>
 
+#ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND_FLEXRATE
+#include <mach/midas-tsp.h>
+#endif
+
 #include "../keyboard/cypress/cypress-touchkey.h"
 
 #define MAX_FINGERS		10
@@ -751,6 +755,12 @@ static irqreturn_t mms_ts_interrupt(int irq, void *dev_id)
 #ifdef CONFIG_CPU_FREQ_LCD_FREQ_DFS
 	if(!!touch_is_pressed){
 		_lcdfreq_lock(0);
+	}
+#endif
+
+#ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND_FLEXRATE
+	if(!!touch_is_pressed){
+		midas_tsp_request_qos();
 	}
 #endif
 
