@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: linux_osl.c 373382 2012-12-07 07:59:52Z $
+ * $Id: linux_osl.c 350283 2012-08-12 07:47:25Z $
  */
 
 #define LINUX_PORT
@@ -35,12 +35,17 @@
 #include <linux/delay.h>
 #include <pcicfg.h>
 
+#ifdef BCMASSERT_LOG
+#include <bcm_assert_log.h>
+#endif
+
+
 #include <linux/fs.h>
 
 #define PCI_CFG_RETRY 		10
 
-#define OS_HANDLE_MAGIC		0x1234abcd	/* Magic # to recognize osh */
-#define BCM_MEM_FILENAME_LEN 	24		/* Mem. filename length */
+#define OS_HANDLE_MAGIC		0x1234abcd	
+#define BCM_MEM_FILENAME_LEN 	24		
 
 #ifdef CONFIG_DHD_USE_STATIC_BUF
 #define DHD_SKB_HDRSIZE 		336
@@ -186,7 +191,7 @@ osl_attach(void *pdev, uint bustype, bool pkttag)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25))
 	gfp_t flags;
 
-	flags = (in_atomic() || in_interrupt()) ? GFP_ATOMIC : GFP_KERNEL;
+	flags = (in_atomic()) ? GFP_ATOMIC : GFP_KERNEL;
 	osh = kmalloc(sizeof(osl_t), flags);
 #else
 	osh = kmalloc(sizeof(osl_t), GFP_ATOMIC);
@@ -283,7 +288,7 @@ osl_detach(osl_t *osh)
 static struct sk_buff *osl_alloc_skb(unsigned int len)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	gfp_t flags = (in_atomic() || in_interrupt()) ? GFP_ATOMIC : GFP_KERNEL;
+	gfp_t flags = (in_atomic()) ? GFP_ATOMIC : GFP_KERNEL;
 
 	return __dev_alloc_skb(len, flags);
 #else
@@ -368,7 +373,7 @@ osl_ctfpool_init(osl_t *osh, uint numobj, uint size)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25))
 	gfp_t flags;
 
-	flags = (in_atomic() || in_interrupt()) ? GFP_ATOMIC : GFP_KERNEL;
+	flags = (in_atomic()) ? GFP_ATOMIC : GFP_KERNEL;
 	osh->ctfpool = kmalloc(sizeof(ctfpool_t), flags);
 #else
 	osh->ctfpool = kmalloc(sizeof(ctfpool_t), GFP_ATOMIC);
@@ -891,7 +896,7 @@ original:
 #endif 
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25))
-	flags = (in_atomic() || in_interrupt()) ? GFP_ATOMIC : GFP_KERNEL;
+	flags = (in_atomic()) ? GFP_ATOMIC : GFP_KERNEL;
 	if ((addr = kmalloc(size, flags)) == NULL) {
 #else
 	if ((addr = kmalloc(size, GFP_ATOMIC)) == NULL) {
@@ -1008,19 +1013,23 @@ osl_assert(const char *exp, const char *file, int line)
 	const char *basename;
 
 	basename = strrchr(file, '/');
-	/* skip the '/' */
+	
 	if (basename)
 		basename++;
 
 	if (!basename)
 		basename = file;
 
+#ifdef BCMASSERT_LOG
 	snprintf(tempbuf, 64, "\"%s\": file \"%s\", line %d\n",
 		exp, basename, line);
 
-	printk("%s", tempbuf);
+	bcm_assert_log(tempbuf);
+#endif 
+
+
 }
-#endif
+#endif 
 
 void
 osl_delay(uint usec)
@@ -1049,7 +1058,7 @@ osl_pktdup(osl_t *osh, void *skb)
 	PKTCTFMAP(osh, skb);
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25))
-	flags = (in_atomic() || in_interrupt()) ? GFP_ATOMIC : GFP_KERNEL;
+	flags = (in_atomic()) ? GFP_ATOMIC : GFP_KERNEL;
 	if ((p = skb_clone((struct sk_buff *)skb, flags)) == NULL)
 #else
 	if ((p = skb_clone((struct sk_buff*)skb, GFP_ATOMIC)) == NULL)
