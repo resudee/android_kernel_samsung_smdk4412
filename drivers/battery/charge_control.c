@@ -79,7 +79,7 @@ enum {
 
 struct max77693_dev *max77693;
 static bool chrg_ctrl_flags[CHRG_CTRL_FLAGS] = { 0 };
-static int batt_chrg_volt = 0;
+static int batt_chrg_volt = 2;
 
 static void update_battery_charge_voltage(int volt_t)
 {
