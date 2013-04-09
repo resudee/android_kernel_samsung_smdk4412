@@ -130,7 +130,10 @@ static void wm8958_micd_set_rate(struct snd_soc_codec *codec)
 			    WM8958_MICD_RATE_MASK, val);
 }
 
-static int wm8994_readable(struct snd_soc_codec *codec, unsigned int reg)
+#ifndef CONFIG_SND_WOLFSON_SOUND_CONTROL
+static
+#endif
+int wm8994_readable(struct snd_soc_codec *codec, unsigned int reg)
 {
 	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
 	struct wm8994 *control = codec->control_data;
@@ -171,7 +174,10 @@ static int wm8994_readable(struct snd_soc_codec *codec, unsigned int reg)
 	return wm8994_access_masks[reg].readable != 0;
 }
 
-static int wm8994_volatile(struct snd_soc_codec *codec, unsigned int reg)
+#ifndef CONFIG_SND_WOLFSON_SOUND_CONTROL
+static
+#endif
+int wm8994_volatile(struct snd_soc_codec *codec, unsigned int reg)
 {
 	if (reg >= WM8994_CACHE_SIZE)
 		return 1;
@@ -193,7 +199,13 @@ static int wm8994_volatile(struct snd_soc_codec *codec, unsigned int reg)
 	}
 }
 
+#ifdef CONFIG_SND_BOEFFLA
 #include "boeffla_sound.h"
+#endif
+
+#ifdef CONFIG_SND_WOLFSON_SOUND_CONTROL
+#include "sound_control.h"
+#endif
 
 static int wm8994_write(struct snd_soc_codec *codec, unsigned int reg,
 	unsigned int value)
@@ -202,7 +214,13 @@ static int wm8994_write(struct snd_soc_codec *codec, unsigned int reg,
 
 	BUG_ON(reg > WM8994_MAX_REGISTER);
 
+#ifdef CONFIG_SND_BOEFFLA
 	value = Boeffla_sound_hook_wm8994_write(reg, value);
+#endif
+
+#ifdef CONFIG_SND_WOLFSON_SOUND_CONTROL
+	value = sound_control_hook_wm8994_write(reg, value);
+#endif
 
 	if (!wm8994_volatile(codec, reg)) {
 		ret = snd_soc_cache_write(codec, reg, value);
@@ -214,7 +232,10 @@ static int wm8994_write(struct snd_soc_codec *codec, unsigned int reg,
 	return wm8994_reg_write(codec->control_data, reg, value);
 }
 
-static unsigned int wm8994_read(struct snd_soc_codec *codec,
+#ifndef CONFIG_SND_WOLFSON_SOUND_CONTROL
+static
+#endif
+unsigned int wm8994_read(struct snd_soc_codec *codec,
 				unsigned int reg)
 {
 	unsigned int val;
@@ -568,7 +589,7 @@ static int wm8994_get_retune_mobile_enum(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-#if defined(CONFIG_MACH_C1_KOR_LGT)
+#if defined(CONFIG_MACH_C1_KOR_LGT) || defined(CONFIG_MACH_BAFFIN_KOR_LGT)
 static const char *fm_control[] = {
 "OFF", "RCV", "EAR", "SPK", "SPK",
 };
@@ -817,10 +838,12 @@ SOC_ENUM("AIF2DAC Noise Gate Hold Time", wm8958_aif2dac_ng_hold),
 SOC_SINGLE_TLV("AIF2DAC Noise Gate Threshold Volume",
 	       WM8958_AIF2_DAC_NOISE_GATE, WM8958_AIF2DAC_NG_THR_SHIFT,
 	       7, 1, ng_tlv),
-#if defined(CONFIG_MACH_C1_KOR_LGT)
+#if defined(CONFIG_MACH_C1_KOR_LGT) || defined(CONFIG_MACH_BAFFIN_KOR_LGT)
 SOC_ENUM_EXT("FM Control", fm_control_enum,
 		wm8994_get_fm_control, wm8994_put_fm_control),
 #endif
+SOC_SINGLE("AIF2ADCL DAT Invert", WM8994_AIF2ADC_DATA, 1, 1, 0),
+SOC_SINGLE("AIF2ADCR DAT Invert", WM8994_AIF2ADC_DATA, 0, 1, 0),
 };
 
 static const struct snd_kcontrol_new wm1811_snd_controls[] = {
@@ -1268,9 +1291,11 @@ static int aif2clk_ev(struct snd_soc_dapm_widget *w,
 		snd_soc_update_bits(codec, WM8994_POWER_MANAGEMENT_5,
 				    WM8994_AIF2DACL_ENA |
 				    WM8994_AIF2DACR_ENA, 0);
+ #if !defined(CONFIG_MACH_BAFFIN)
 		snd_soc_update_bits(codec, WM8994_POWER_MANAGEMENT_4,
 				    WM8994_AIF2ADCL_ENA |
 				    WM8994_AIF2ADCR_ENA, 0);
+ #endif
 
 		val = snd_soc_read(codec, WM8994_CLOCKING_1);
 		if (val & WM8994_AIF1DSPCLK_ENA)
@@ -2770,7 +2795,7 @@ static int wm8994_hw_params(struct snd_pcm_substream *substream,
 		return -EINVAL;
 	}
 
-	bclk_rate = params_rate(params) * 4;
+	bclk_rate = params_rate(params) * 2;
 	switch (params_format(params)) {
 	case SNDRV_PCM_FORMAT_S16_LE:
 		bclk_rate *= 16;
@@ -3126,6 +3151,9 @@ static int wm8994_codec_resume(struct snd_soc_codec *codec)
 		/* force a HW read */
 		val = wm8994_reg_read(codec->control_data,
 				      WM8994_POWER_MANAGEMENT_5);
+		if (val < 0)
+			dev_err(codec->dev, "[%s]Failed to read PM5 ret[%d]\n",
+					__func__, val);
 
 		/* modify the cache only */
 		codec->cache_only = 1;
@@ -4217,9 +4245,12 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 					ARRAY_SIZE(wm8958_intercon));
 		break;
 	}
-
 #ifdef CONFIG_SND_BOEFFLA
 	Boeffla_sound_hook_wm8994_pcm_probe(codec);
+#endif
+
+#ifdef CONFIG_SND_WOLFSON_SOUND_CONTROL
+	sound_control_hook_wm8994_pcm_probe(codec);
 #endif
 
 	return 0;
