@@ -185,6 +185,10 @@ static unsigned int elvss_offset_table[ELVSS_STATUS_MAX] = {
 extern void (*lcd_early_suspend)(void);
 extern void (*lcd_late_resume)(void);
 
+#ifdef CONFIG_FB_S5P_MDNIE_CONTROL
+extern void mdnie_update_brightness(int brightness, bool is_auto, bool force);
+#endif
+
 #if defined(GPIO_OLED_DET)
 static void oled_detection_work(struct work_struct *work)
 {
@@ -892,9 +896,6 @@ static int update_brightness(struct lcd_info *lcd, u8 force)
 
 	brightness = lcd->bd->props.brightness;
 
-	if (unlikely(!lcd->auto_brightness && brightness > 250))
-		brightness = 250;
-
 	lcd->bl = get_backlight_level_from_brightness(brightness);
 
 	if ((force) || ((lcd->ldi_enable) && (lcd->current_bl != lcd->bl))) {
@@ -911,6 +912,10 @@ static int update_brightness(struct lcd_info *lcd, u8 force)
 
 		dev_info(&lcd->ld->dev, "brightness=%d, bl=%d, candela=%d\n", brightness, lcd->bl, candela_table[lcd->bl]);
 	}
+
+#ifdef CONFIG_FB_S5P_MDNIE_CONTROL
+	mdnie_update_brightness(brightness, lcd->auto_brightness, false);
+#endif
 
 	mutex_unlock(&lcd->bl_lock);
 
