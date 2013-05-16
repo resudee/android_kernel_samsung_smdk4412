@@ -938,6 +938,16 @@ void blk_requeue_request(struct request_queue *q, struct request *rq)
 
 	BUG_ON(blk_queued_rq(rq));
 
+        if (rq->cmd_flags & REQ_URGENT) {
+		/*
+		 * It's not compliant with the design to re-insert
+		 * urgent requests. We want to be able to track this
+		 * down.
+		 */
+		pr_err("%s(): requeueing an URGENT request", __func__);
+		WARN_ON(!q->dispatched_urgent);
+		q->dispatched_urgent = false;
+	}
 	elv_requeue_request(q, rq);
 }
 EXPORT_SYMBOL(blk_requeue_request);
@@ -965,10 +975,36 @@ int blk_reinsert_request(struct request_queue *q, struct request *rq)
 		blk_queue_end_tag(q, rq);
 
 	BUG_ON(blk_queued_rq(rq));
+        if (rq->cmd_flags & REQ_URGENT) {
+		/*
+		 * It's not compliant with the design to re-insert
+		 * urgent requests. We want to be able to track this
+		 * down.
+		 */
+		pr_err("%s(): requeueing an URGENT request", __func__);
+		WARN_ON(!q->dispatched_urgent);
+		q->dispatched_urgent = false;
+	}
 
 	return elv_reinsert_request(q, rq);
 }
 EXPORT_SYMBOL(blk_reinsert_request);
+
+/**
+ * blk_reinsert_req_sup() - check whether the scheduler supports
+ *          reinsertion of requests
+ * @q:		request queue
+ *
+ * Returns true if the current scheduler supports reinserting
+ * request. False otherwise
+ */
+bool blk_reinsert_req_sup(struct request_queue *q)
+{
+	if (unlikely(!q))
+		return false;
+	return q->elevator->elevator_type->ops.elevator_reinsert_req_fn ? true : false;
+}
+EXPORT_SYMBOL(blk_reinsert_req_sup);
 
 static void add_acct_request(struct request_queue *q, struct request *rq,
 			     int where)
@@ -1212,7 +1248,7 @@ static bool attempt_plug_merge(struct task_struct *tsk, struct request_queue *q,
 	list_for_each_entry_reverse(rq, &plug->list, queuelist) {
 		int el_ret;
 
-		if (rq->q != q)
+                if (rq->q != q)
 			continue;
 
 		el_ret = elv_try_merge(rq, bio);
@@ -1508,7 +1544,7 @@ static inline void __generic_make_request(struct bio *bio)
 			goto end_io;
 		}
 
-		if (unlikely(!(bio->bi_rw & REQ_DISCARD) &&
+		if (unlikely(!(bio->bi_rw & (REQ_DISCARD | REQ_SANITIZE)) &&
 			     nr_sectors > queue_max_hw_sectors(q))) {
 			printk(KERN_ERR "bio too big device %s (%u > %u)\n",
 			       bdevname(bio->bi_bdev, b),
@@ -1558,6 +1594,14 @@ static inline void __generic_make_request(struct bio *bio)
 		    (!blk_queue_discard(q) ||
 		     ((bio->bi_rw & REQ_SECURE) &&
 		      !blk_queue_secdiscard(q)))) {
+			err = -EOPNOTSUPP;
+			goto end_io;
+		}
+
+		if ((bio->bi_rw & REQ_SANITIZE) &&
+		    (!blk_queue_sanitize(q))) {
+			pr_info("%s - got a SANITIZE request but the queue "
+			       "doesn't support sanitize requests", __func__);
 			err = -EOPNOTSUPP;
 			goto end_io;
 		}
@@ -1652,7 +1696,8 @@ void submit_bio(int rw, struct bio *bio)
 	 * If it's a regular read/write or a barrier with data attached,
 	 * go through the normal accounting stuff before submission.
 	 */
-	if (bio_has_data(bio) && !(rw & REQ_DISCARD)) {
+	if (bio_has_data(bio) &&
+	    (!(rw & (REQ_DISCARD | REQ_SANITIZE)))) {
 		if (rw & WRITE) {
 			count_vm_events(PGPGOUT, count);
 		} else {
@@ -1698,7 +1743,7 @@ EXPORT_SYMBOL(submit_bio);
  */
 int blk_rq_check_limits(struct request_queue *q, struct request *rq)
 {
-	if (rq->cmd_flags & REQ_DISCARD)
+	if (rq->cmd_flags & (REQ_DISCARD | REQ_SANITIZE))
 		return 0;
 
 	if (blk_rq_sectors(rq) > queue_max_sectors(q) ||
@@ -2011,13 +2056,9 @@ struct request *blk_fetch_request(struct request_queue *q)
 
 	rq = blk_peek_request(q);
 	if (rq) {
-		/*
-		 * Assumption: the next request fetched from scheduler after we
-		 * notified "urgent request pending" - will be the urgent one
-		 */
-		if (q->notified_urgent && !q->dispatched_urgent) {
+		if (rq->cmd_flags & REQ_URGENT) {
+			WARN_ON(q->dispatched_urgent);
 			q->dispatched_urgent = true;
-			(void)blk_mark_rq_urgent(rq);
 		}
 		blk_start_request(rq);
 	}
