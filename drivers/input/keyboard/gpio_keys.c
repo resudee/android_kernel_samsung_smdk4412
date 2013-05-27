@@ -848,6 +848,10 @@ static int __devinit gpio_keys_probe(struct platform_device *pdev)
 			wakeup = 1;
 
 		input_set_capability(input, type, button->code);
+#ifdef CONFIG_TOUCH_WAKE
+		pr_info("powerkey device set to: %p \n", input);
+		set_powerkeydev(input);
+#endif 
 	}
 
 	error = sysfs_create_group(&pdev->dev.kobj, &gpio_keys_attr_group);
@@ -994,10 +998,6 @@ static struct platform_driver gpio_keys_device_driver = {
 		.owner	= THIS_MODULE,
 #ifdef CONFIG_PM
 		.pm	= &gpio_keys_pm_ops,
-#endif
-#ifdef CONFIG_TOUCH_WAKE
-      pr_info("powerkey device set to: %p \n", input);
-      set_powerkeydev(input);
 #endif
 	}
 };
