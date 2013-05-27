@@ -30,6 +30,10 @@
 #include <linux/wakelock.h>
 #endif
 
+#ifdef CONFIG_TOUCH_WAKE
+#include <linux/touch_wake.h>
+#endif
+
 extern struct class *sec_class;
 
 struct gpio_button_data {
@@ -990,6 +994,10 @@ static struct platform_driver gpio_keys_device_driver = {
 		.owner	= THIS_MODULE,
 #ifdef CONFIG_PM
 		.pm	= &gpio_keys_pm_ops,
+#endif
+#ifdef CONFIG_TOUCH_WAKE
+      pr_info("powerkey device set to: %p \n", input);
+      set_powerkeydev(input);
 #endif
 	}
 };
