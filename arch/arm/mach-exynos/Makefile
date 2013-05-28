@@ -29,8 +29,14 @@ AFLAGS_sleep-exynos4.o :=$(call as-instr,.arch_extension sec,-DREQUIRES_SEC=1)
 
 obj-$(CONFIG_EXYNOS5_PM)	+= pm-exynos5.o sleep-exynos5.o
 obj-$(CONFIG_CPU_FREQ)		+= cpufreq.o
-obj-$(CONFIG_EXYNOS4_CPUFREQ)	+= asv.o asv-4210.o asv-4x12.o
-obj-$(CONFIG_EXYNOS4_CPUFREQ)	+= cpufreq-4210.o cpufreq-4x12.o
+obj-$(CONFIG_EXYNOS4_CPUFREQ)  += asv.o
+ifeq ($(CONFIG_CPU_EXYNOS4210),y)
+obj-$(CONFIG_EXYNOS4_CPUFREQ)  += asv-4210.o
+obj-$(CONFIG_EXYNOS4_CPUFREQ)  += cpufreq-4210.o
+else
+obj-$(CONFIG_EXYNOS4_CPUFREQ)  += asv-4x12.o
+obj-$(CONFIG_EXYNOS4_CPUFREQ)  += cpufreq-4x12.o
+endif
 obj-$(CONFIG_EXYNOS5_CPUFREQ)	+= asv.o asv-5250.o
 obj-$(CONFIG_EXYNOS5_CPUFREQ)	+= cpufreq-5250.o
 obj-$(CONFIG_EXYNOS4_CPUIDLE)	+= cpuidle-exynos4.o idle-exynos4.o
@@ -287,6 +293,7 @@ obj-$(CONFIG_SEC_MODEM_M1)		+= board-c1-modems.o
 obj-$(CONFIG_SEC_MODEM_C1)		+= board-c1-modems.o
 obj-$(CONFIG_SEC_MODEM_C1_LGT)		+= board-c1lgt-modems.o
 obj-$(CONFIG_SEC_MODEM_U1)		+= board-u1-modems.o
+obj-$(CONFIG_SEC_MODEM_U1_SPR)		+= board-u1-spr-modems.o
 obj-$(CONFIG_SEC_MODEM_U1_LGT)		+= board-u1-lgt-modems.o
 obj-$(CONFIG_SEC_MODEM_P8LTE)		+= board-p8ltevzw-modems.o
 obj-$(CONFIG_SEC_DEBUG)			+= sec_debug.o sec_getlog.o sec_gaf.o
