@@ -603,7 +603,6 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 	}
 
 	if (card->ext_csd.rev >= 5) {
-
 		/* If moviNAND, run smart report */
 		if (card->cid.manfid == 0x15) {
 			card->host->card = card;
