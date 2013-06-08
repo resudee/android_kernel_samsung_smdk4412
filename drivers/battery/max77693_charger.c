@@ -466,6 +466,22 @@ void max77693_set_input_current(struct max77693_charger_data *chg_data,
 
 #if defined(CONFIG_MACH_M0_DUOSCTC)
 	if (set_current == OFF_CURR) {
+		pr_debug("%s: buck off current(%d)\n", __func__, set_current);
+		max77693_write_reg(i2c, MAX77693_CHG_REG_CHG_CNFG_09, 0);
+
+		max77693_set_buck(chg_data, DISABLE);
+
+		if (chg_data->soft_reg_state == true) {
+			pr_info("%s: exit soft regulation loop\n", __func__);
+			chg_data->soft_reg_state = false;
+		}
+
+		mutex_unlock(&chg_data->ops_lock);
+		return;
+	} else
+		max77693_set_buck(chg_data, ENABLE);
+#else
+	if (set_current == OFF_CURR) {
 		max77693_write_reg(i2c, MAX77693_CHG_REG_CHG_CNFG_09,
 							set_current);
 
