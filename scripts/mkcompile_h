@@ -75,7 +75,7 @@ UTS_TRUNCATE="cut -b -$UTS_LEN"
 
   echo \#define LINUX_COMPILE_TIME \"`date +%T`\"
   echo \#define LINUX_COMPILE_BY \"temasek\"
-  echo \#define LINUX_COMPILE_HOST \"snappy\"
+  echo \#define LINUX_COMPILE_HOST \"wolfson\"
 
   echo \#define LINUX_COMPILER \"`$CC -v 2>&1 | tail -n 1`\"
 ) > .tmpcompile
