@@ -371,9 +371,9 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-delete-null-pointer-checks \
 		   -pipe \
 		   -ffast-math \
-		   -mfpu=neon \
-		   -march=armv7-a \
-		   -mtune=cortex-a9
+		   -marm -march=armv7-a \
+		   -mcpu=cortex-a9 -mfpu=neon -mtune=cortex-a9 -fno-pic \
+		   -munaligned-access
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
